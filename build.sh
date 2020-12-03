@@ -61,3 +61,4 @@ docker container create \
 docker container start ${CONTAINER_NAME}
 docker logs ${CONTAINER_NAME}
 docker container exec --privileged -it ${CONTAINER_NAME} /bin/bash
+

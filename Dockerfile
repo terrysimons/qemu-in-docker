@@ -58,6 +58,7 @@ RUN apt install -y \
     lib*gl*mesa* \
     libgbm* \
     libvulkan1 \
+    glmemperf \
     mesa-utils \
     mesa-utils-extra \
     mesa-vulkan-drivers \
@@ -69,10 +70,10 @@ RUN apt install -y \
     binutils-dev \
     grub-firmware-qemu \
     libqcow* \    
-    libvirt* \
+#    libvirt* \
     libvirglrenderer-dev \
     qemu-guest-agent \
-    qemu-system-* \
+#    qemu-system-* \
     qemu-user \
     sparse
 
@@ -160,14 +161,24 @@ FROM qemu-base as developer-local
 RUN apt install -y \
     emacs \
     firefox \
-    libcrypt2 \
+#    libcrypt2 \    
     libgcrypt20* \
+    libkeyutils* \
     libsdl2-* \
+    libslirp-dev \
+    libu2f* \
+    liburing* \
     libvirt-clients \
     libvirt-daemon \
     libvte* \
+    multipath-tools* \
+    ncat \
+    ninja-build \
     nmap \
-    ncat
+    slirp \
+    sphinx \
+    u2f* \
+    libzstd*
 
 ARG USER=developer
 ENV USER=${USER}
@@ -175,7 +186,7 @@ ARG HOME=/home/${USER}
 ENV HOME=${HOME}
 
 RUN adduser --home ${HOME} --disabled-password --gecos "Developer Account" --shell /bin/bash ${USER}
-RUN usermod -a -G libvirt ${USER}
+#RUN usermod -a -G libvirt ${USER}
 RUN usermod -a -G video ${USER}
 RUN echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
@@ -189,49 +200,39 @@ WORKDIR ${HOME}
 # WORKDIR ${HOME}/netmap
 
 WORKDIR ${HOME}
-ARG QEMU_VERSION=4.1.1
+ARG QEMU_VERSION=5.2.0-rc4
+ENV QEMU_VERSION=${QEMU_VERSION}
 ARG QEMU_ROOT=qemu-${QEMU_VERSION}
+ENV QEMU_ROOT=${QEMU_ROOT}
 ARG QEMU_TARBALL=${QEMU_ROOT}.tar.bz2
+ENV QEMU_TARBALL=${QEMU_TARBALL}
 ARG QEMU_PREFIX_PATH=/usr/local
+ENV QEMU_PREFIX_PATH=${QEMU_PREFIX_PATH}
 ARG QEMU_CC=clang
+ENV QEMU_CC=${QEMU_CC}
 ARG QEMU_CXX=clang++
+ENV QEMU_CXX=${QEMU_CXX}
 
 RUN wget https://download.qemu.org/${QEMU_TARBALL}
 RUN tar xvfj ${QEMU_TARBALL}
 
 WORKDIR ${HOME}/${QEMU_ROOT}
 # Build with clang
-RUN bash configure \
-    --prefix=${QEMU_PREFIX} \
+RUN bash ./configure \
+    --prefix=${QEMU_PREFIX_PATH} \
     --cc=${QEMU_CC} \
     --cxx=${QEMU_CXX} \
     --enable-hax \
-    --enable-membarrier \
+    --disable-membarrier \
     --enable-jemalloc \
-    | grep -e "no$"
+    --enable-plugins \
+    --enable-rng-none \
+    --enable-sheepdog \
+    | grep -e "NO$"
 
-#RUN make -j $(nproc) && \
-#    sudo make install
 
-# ./configure --cc=clang --cxx=clang++ --enable-hax --enable-membarrier --enable-rbd --enable-xfsctl --enable-snappy --enable-avx2
-
-#RUN bash configure \
-#    --enable-gprof \
-#    --enable-sparse \
-#    --enable-profiler \
-#    --enable-vte \
-#    --enable-hax \
-#    --enable-hvf \
-#    --disable-whpx \
-#    --enable-tcg-interpreter \
-#    --enable-rdma \
-#    --enable-membarrier \
-#    --enable-spice \
-#    --enable-smartcard \
-#    --enable-libusb \
-#    --enable-opengl \
-#    --enable-gcov \
-#    --enable-debug
+RUN make -j $(nproc) && \
+    sudo make install
 
 RUN sudo apt install -y \
     *canberra*
@@ -250,7 +251,7 @@ RUN sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.mic
 
 RUN sudo apt install -y apt-transport-https
 RUN sudo apt update
-RUN sudo apt install -y code # or code-insiders
+#RUN sudo apt install -y code # or code-insiders
 
 # Install VSCode plugins.
 COPY install-vscode-extensions.sh ${HOME}/install-vscode-extensions.sh
@@ -260,7 +261,7 @@ RUN ${HOME}/install-vscode-extensions.sh
 #COPY vscode-settings ${HOME}/.vscode
 #RUN sudo chown -R ${USER} ${HOME}/.vscode
 
-RUN code --list-extensions --show-versions
+#RUN code --list-extensions --show-versions
 
 FROM vscode-stage as final-stage
 
