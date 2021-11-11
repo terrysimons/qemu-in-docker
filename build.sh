@@ -7,6 +7,7 @@ set -Eeuxo pipefail
 
 IMAGE_NAME=qemu-in-docker
 CONTAINER_NAME=${IMAGE_NAME}
+ARCH=$(arch)
 
 #       --device /dev/dri:/dev/dri \
 #       --device /dev/kvm:/dev/kvm \
@@ -17,12 +18,13 @@ CONTAINER_NAME=${IMAGE_NAME}
 DOCKER_DEVICES=" \
 "
 
-DOCKER_VOLUMES=" \
-       --volume /tmp/.X11-unix:/tmp/.X11-unix \
-       --volume ${HOME}/fuchsia:/home/developer/fuchsia \
-       --volume ${HOME}/qemu:/home/developer/qemu \
-       --volume ${HOME}/.vscode:/home/developer/.vscode
-"
+DOCKER_VOLUMES="" 
+#\
+#        --volume /tmp/.X11-unix:/tmp/.X11-unix \
+#        --volume ${HOME}/fuchsia:/home/developer/fuchsia \
+#        --volume ${HOME}/qemu:/home/developer/qemu \
+#        --volume ${HOME}/.vscode:/home/developer/.vscode
+# "
 
 set +e
 docker container stop ${CONTAINER_NAME}
@@ -36,22 +38,22 @@ set -e
 #
 # This pins the Docker extension version to the
 # same versions as the Docker host.
-VSCODE_EXTENSIONS=($(code --list-extensions --show-versions))
+# VSCODE_EXTENSIONS=($(code --list-extensions --show-versions))
 
-cat << EOF > install-vscode-extensions.sh
-#!/usr/bin/env bash
-set -Eeuxo pipefail
+# cat << EOF > install-vscode-extensions.sh
+# #!/usr/bin/env bash
+# set -Eeuxo pipefail
 
-EOF
+# EOF
 
-for VSCODE_EXTENSION in ${VSCODE_EXTENSIONS[@]}
-do
-    cat << EOF >> install-vscode-extensions.sh
-code --install-extension ${VSCODE_EXTENSION}
-EOF
-done
+# for VSCODE_EXTENSION in ${VSCODE_EXTENSIONS[@]}
+# do
+#     cat << EOF >> install-vscode-extensions.sh
+# code --install-extension ${VSCODE_EXTENSION}
+# EOF
+# done
 
-docker build -t ${IMAGE_NAME} .
+docker build -t ${IMAGE_NAME} -f Dockerfile-${ARCH} .
 docker container create \
        -e DISPLAY=$DISPLAY \
        ${DOCKER_DEVICES} \
